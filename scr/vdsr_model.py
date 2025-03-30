@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data.datapipes.iter import Shuffler
+from tqdm import tqdm
 
 class ConvReLU(nn.Module):
     def __init__(self, channels):
@@ -74,6 +75,7 @@ def train_VDSR(model, epochs, dataset, batch_size=8, lr=1e-4):
         model.train()
         epoch_loss = 0.0
         index = 0
+        progress_bar = tqdm(dataloader, desc=f"Epoch [{epoch+1}/{epochs}]", leave=True)
         for lr, hr in dataloader:
             lr = lr.to(device)
             hr = hr.to(device)
@@ -93,7 +95,8 @@ def train_VDSR(model, epochs, dataset, batch_size=8, lr=1e-4):
 
             epoch_loss += loss.item()
             index += 1
-
+            progress_bar.set_postfix(loss=f"{loss.item():.6f}")
+            
         scheduler.step()
         
         avg_loss = epoch_loss/index

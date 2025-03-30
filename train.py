@@ -7,17 +7,17 @@ import torch
 
 """ Global variables """
 # Variables to load the data:
-div2k_subset = "div2k/unknown_x2" # The link of div2k subset in tensorflow dataset.
+div2k_subset = "div2k/unknown_x3" # The link of div2k subset in tensorflow dataset.
 
 # Variables to process the data:
-ds_factor = 2 # The down scale factor of this dataset.
+ds_factor = 3 # The down scale factor of this dataset.
 patch_size=(64,64) # The patch size to crop the image.
 
 # Training hyper-parameters:
 batch_size = 32 
 epochs = 10
 learning_rate = 1e-4
-num_layers = 8 # Number of convolutional layers.
+num_layers = 18 # Number of convolutional layers.
 channels = 64 # The number of channels (filters) of convolutional layers.
 input_channels = 3 # The input and output channel number (1 for grayscale and 3 for colored image). 
 residual_rate = 0.95 # How much to preserve input value for residual learning
@@ -34,7 +34,7 @@ def main():
 
     # Crop the images in training dataset for faster training.
     dataset_train = extract_cropped_data(
-        dataset['train'].take(8), patch_size, ds_factor)
+        dataset['train'].take(800), patch_size, ds_factor)
 
     # Convert TensorFlow dataset to PyTorch dataset.
 
@@ -42,7 +42,8 @@ def main():
 
     """ Create or load a model. Train and save it. """
     # Initialize the model.
-    VDSR_model = VDSR(channels, input_channels, num_layers, ds_factor)
+    VDSR_model = VDSR(channels, input_channels, 
+                      num_layers, ds_factor, residual_rate)
 
     if os.path.exists(weights_path):
         print("Existing model weights loaded.")
