@@ -37,9 +37,10 @@ def main():
     dataset_train = extract_cropped_data(
         dataset['train'].take(300), patch_size, ds_factor)
 
-    dataset_val = extract_cropped_data(
-        dataset['validation'].take(100), patch_size*4, ds_factor)
+    # dataset_val = extract_cropped_data(
+        # dataset['validation'].take(100), patch_size*4, ds_factor)
 
+    dataset_val = extract_data(dataset['validation'].take(5))
     # Convert TensorFlow dataset to PyTorch dataset.
     dataset_train = TFToTorchDataset(dataset_train)
     dataset_val = TFToTorchDataset(dataset_val)
@@ -86,8 +87,8 @@ def main():
     print(ssim_list_bi,f'\n The mean ssim of the bicubic output is {np.mean(ssim_list_bi)}')
 
     p = 0
-    plot_images(lr_list[p], sr_list[p], hr_list[p], './outputs/model_output.png')
-    plot_images(lr_list[p], bi_sr_list[p] ,hr_list[p], './outputs/bicubic_output.png')
+    plot_images(lr_list[p], sr_list[p], hr_list[p], './outputs/model_output_full_size.png')
+    plot_images(lr_list[p], bi_sr_list[p] ,hr_list[p], './outputs/bicubic_output_full_size.png')
 
 if __name__ == "__main__":
     main()
