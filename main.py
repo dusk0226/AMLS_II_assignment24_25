@@ -8,11 +8,12 @@ import torch
 
 """ Global variables """
 # Variables to load the data:
-div2k_subset = "div2k/unknown_x3" # The link of div2k subset in tensorflow dataset.
+div2k_subset = "div2k/unknown_x2" # The link of div2k subset in tensorflow dataset.
 
 # Variables to process the data:
-ds_factor = 3 # The down scale factor of this dataset.
-patch_size=(64,64) # The patch size to crop the image.
+ds_factor = 2 # The down scale factor of this dataset.
+patch_size_train=(64,64) # The patch size to crop the image for training.
+patch_size_test=(128,128) # The patch size to crop the image for testing.
 
 # Training hyper-parameters:
 batch_size = 32 
@@ -35,12 +36,11 @@ def main():
     # Crop the images in training dataset for faster training and better comparison.
     # Use dataset_val = extract_data(dataset['validation']) if want to remain the original size.
     dataset_train = extract_cropped_data(
-        dataset['train'].take(300), patch_size, ds_factor)
+        dataset['train'], patch_size_train, ds_factor)
 
-    # dataset_val = extract_cropped_data(
-        # dataset['validation'].take(100), patch_size*4, ds_factor)
+    dataset_val = extract_cropped_data(
+        dataset['validation'], patch_size_test, ds_factor)
 
-    dataset_val = extract_data(dataset['validation'].take(5))
     # Convert TensorFlow dataset to PyTorch dataset.
     dataset_train = TFToTorchDataset(dataset_train)
     dataset_val = TFToTorchDataset(dataset_val)
@@ -87,8 +87,8 @@ def main():
     print(ssim_list_bi,f'\n The mean ssim of the bicubic output is {np.mean(ssim_list_bi)}')
 
     p = 0
-    plot_images(lr_list[p], sr_list[p], hr_list[p], './outputs/model_output_full_size.png')
-    plot_images(lr_list[p], bi_sr_list[p] ,hr_list[p], './outputs/bicubic_output_full_size.png')
+    plot_images(lr_list[p], sr_list[p], hr_list[p], './outputs/model_output_test.png')
+    plot_images(lr_list[p], bi_sr_list[p] ,hr_list[p], './outputs/bicubic_output_test.png')
 
 if __name__ == "__main__":
     main()

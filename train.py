@@ -7,10 +7,10 @@ import torch
 
 """ Global variables """
 # Variables to load the data:
-div2k_subset = "div2k/unknown_x3" # The link of div2k subset in tensorflow dataset.
+div2k_subset = "div2k/unknown_x2" # The link of div2k subset in tensorflow dataset.
 
 # Variables to process the data:
-ds_factor = 3 # The down scale factor of this dataset.
+ds_factor = 2 # The down scale factor of this dataset.
 patch_size=(64,64) # The patch size to crop the image.
 
 # Training hyper-parameters:
@@ -37,7 +37,6 @@ def main():
         dataset['train'].take(800), patch_size, ds_factor)
 
     # Convert TensorFlow dataset to PyTorch dataset.
-
     dataset_train = TFToTorchDataset(dataset_train)
 
     """ Create or load a model. Train and save it. """
