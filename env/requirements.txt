@@ -8,5 +8,5 @@ torch
 torchvision
 opencv-python
 skimage
-
+tqdm
 

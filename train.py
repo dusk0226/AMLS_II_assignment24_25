@@ -25,7 +25,7 @@ residual_rate = 0.95 # How much to preserve input value for residual learning
 model_load = False # If train based on a pretrained model.
 model_save = False # If save the trained model.
 
-weights_path = "./track2/vdsr_weights_track2.pth"
+weights_path = "./track2/vdsr_track2x2.pth"
 
 def main():
     """ Load and process the data. """
@@ -46,7 +46,7 @@ def main():
 
     if os.path.exists(weights_path):
         print("Existing model weights loaded.")
-        VDSR_model.load_state_dict(torch.load(weights_path))
+        VDSR_model.load_state_dict(torch.load(weights_path), strict=False)
     else:
         print("No previous weights found. Training from scratch!")
         VDSR_model.apply(weights_init)

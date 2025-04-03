@@ -7,6 +7,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data.datapipes.iter import Shuffler
 from tqdm import tqdm
+import torchvision.models as models
+from torchvision.models import VGG19_Weights
 
 class ConvReLU(nn.Module):
     def __init__(self, channels):
@@ -53,6 +55,26 @@ class CharbonnierLoss(nn.Module):
     def forward(self, sr, hr):
         return torch.mean(torch.sqrt((sr-hr)**2 + self.epsilon**2))
 
+class VGGLoss(nn.Module):
+    def __init__(self, layer='relu5_4'):
+        super(VGGLoss, self).__init__()
+        vgg = models.vgg19(weights=VGG19_Weights.IMAGENET1K_V1).features
+        self.layers = {
+            'relu1_2': 3,  'relu2_2': 8,  'relu3_4': 17,
+            'relu4_4': 26, 'relu5_4': 35
+        }
+        assert layer in self.layers, f"Invalid layer {layer}, choose from {list(self.layers.keys())}"
+
+        self.vgg = nn.Sequential(*list(vgg[:self.layers[layer]])).eval()
+        for param in self.vgg.parameters():
+            param.requires_grad = False  # Freeze VGG model
+
+        self.criterion = nn.L1Loss()  # Use L1 loss for perceptual similarity
+
+    def forward(self, sr, hr):
+        sr_vgg = self.vgg(sr)
+        hr_vgg = self.vgg(hr)
+        return self.criterion(sr_vgg, hr_vgg)
 
 def weights_init(m):
     if isinstance(m, nn.Conv2d):
@@ -66,6 +88,7 @@ def train_VDSR(model, epochs, dataset, batch_size=8, lr=1e-4):
 
     mse_loss = nn.MSELoss()
     L1_loss = CharbonnierLoss()
+    # vgg_loss = VGGLoss(layer='relu5_4').to(device)
 
     optimizer = optim.Adam(model.parameters(), lr)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
@@ -83,8 +106,9 @@ def train_VDSR(model, epochs, dataset, batch_size=8, lr=1e-4):
 
             loss_mse = mse_loss(sr, hr)
             loss_L1 = L1_loss(sr, hr)
+            # loss_vgg = vgg_loss(sr, hr)
             
-            loss = 0.5*loss_mse + 0.5*loss_L1
+            loss = 0.5*loss_mse + 0.5*loss_L1 # + 0.2*loss_vgg
 
             # Backpropagation
             optimizer.zero_grad()
@@ -104,7 +128,33 @@ def train_VDSR(model, epochs, dataset, batch_size=8, lr=1e-4):
 
     return model
 
-def inference_VDSR(model, dataset):
+class PnP_ADMM:
+    def __init__(self, model, rho=0.1, num_iters=10, ds_factor=2):
+        self.model = model  # VDSR as the denoiser
+        self.rho = rho
+        self.num_iters = num_iters
+        self.ds_factor = ds_factor
+
+    def forward(self, lr):
+        # Initialize Variables
+        up_lr = self.model(lr)
+        z = up_lr.clone()       
+        u = torch.zeros_like(lr)  # Dual variable initialized to zero
+
+        for _ in range(self.num_iters):
+            # Solve Least Squares Problem (Data Consistency)
+            z_down = F.interpolate(z, scale_factor=1/self.ds_factor, mode='bicubic', align_corners=False)
+            residual = lr - z_down  # Difference between LR input and downsampled SR estimate
+            sr = z_down + self.rho * residual
+            # Apply Denoiser (PnP Step)
+            z = self.model(sr + u)
+            # Align the scale for update
+            s = F.interpolate(z, scale_factor=1/self.ds_factor, mode='bicubic', align_corners=False)
+            # Update Dual Variable
+            u = u + (sr - s)
+        return z  
+    
+def inference_VDSR(model, dataset, pnp:bool=False, num_iters=10):
     model.eval()
     data = DataLoader(dataset, 1, shuffle=False)
     lr_list = []
@@ -112,13 +162,14 @@ def inference_VDSR(model, dataset):
     hr_list = []
     index = 0
     for lr, hr in data:
-        lr = lr
-        hr = hr
-        index += 1
         with torch.no_grad():
-            sr_image = model(lr)
+            if pnp:
+                do_pnp = PnP_ADMM(model, rho=0.1, num_iters=num_iters, ds_factor=model.ds_factor)
+                sr = do_pnp.forward(lr)
+            else:    
+                sr = model(lr)
 
-        sr = sr_image.squeeze(0).permute(1, 2, 0).numpy()
+        sr = sr.squeeze(0).permute(1, 2, 0).numpy()
         sr = sr.clip(0, 255).astype("uint8")
 
         lr = lr.squeeze(0).permute(1, 2, 0).numpy()
@@ -130,7 +181,6 @@ def inference_VDSR(model, dataset):
         lr_list.append(lr)
         sr_list.append(sr)
         hr_list.append(hr)
-
-        print(f'The image number {index} is resolved.')
-
+        index+=1
+        print(f'The image {index} has been successfully resolved!')
     return lr_list, sr_list, hr_list
