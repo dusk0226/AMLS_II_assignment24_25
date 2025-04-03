@@ -35,11 +35,11 @@ Some typical inference results are included in the 'outputs' file, you can you t
 Demonstration of typical super-resolved results.
 
 ### Screenshots
-
+Compare rl, model output sr, hr (track2x3)
 ![Compare rl, model output sr, hr (track2x3)](outputs/t2x3_model_output.png)
-
+Compare rl, bicubic output sr, hr (track2x3)
 ![Compare rl, bicubic output sr, hr (track2x3)](outputs/t2x3_bicubic_output.png)
-
+Compare rl, model output sr, hr (track2x3, fullsize)
 ![Compare rl, model output sr, hr (track2x3, fullsize)](outputs/t2x3_model_output_full_size.png)
-
+Compare rl, bicubic output sr, hr (track2x3, fullsize)
 ![Compare rl, bicubic output sr, hr (track2x3, fullsize)](outputs/t2x3_bicubic_output_full_size.png)
